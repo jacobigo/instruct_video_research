@@ -2,7 +2,7 @@ import re
 import pymupdf
 from gtts import gTTS
 from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
-
+import os
 
 
 #clean the meta-data
@@ -46,16 +46,24 @@ def parse_script(script_path):
 
 
 #extracting each image from the slides
-def extract_slides(slide_path, output_dir="slide_images"):
+def extract_slides(slide_path, output_dir="slide_images", skip_first=True):
     doc = pymupdf.open(slide_path)
     paths = []
 
+
+    start_index = 1 if skip_first else 0
     for i, page in enumerate(doc):
+        if i < start_index:
+            continue
         pix = page.get_pixmap(dpi=200)
-        img_path = f"{output_dir}\\slide_{i+1}.png"
-        if not img_path:
+        slide_num = i + 1
+        if slide_num <= 10:
+            img_path = f"{output_dir}\\slide_0{i}.png"
+        else:
+            img_path = f"{output_dir}\\slide_{i}.png"
+        if not os.path.exists(img_path):
             pix.save(img_path)
-            paths.append(img_path)
+        paths.append(img_path)
 
     return paths
 
@@ -69,25 +77,25 @@ def make_audio_gtts(text, output_path):
 
 
 #generate each clip from image + audio
-def make_clip(slide_image_path, audio_path, output_dir='test'):
+def make_clip(slide_image_path, audio_path, output_dir):
     audio_clip = AudioFileClip(audio_path)
     slide_image_clip = ImageClip(slide_image_path)
 
     slide_image_clip = slide_image_clip.with_duration(audio_clip.duration)
     
     final_clip = slide_image_clip.with_audio(audio_clip)
-    final_clip.write_videofile(f'{output_dir}\\test_audio_image_clip_overview.mp4', fps=24)
+    final_clip.write_videofile(output_dir, fps=24)
 
 
 
 
 
 
-
+#testing
 if __name__ == '__main__':
     script_path = 'script.md'
     result = parse_script(script_path)
-    print(len(result))
+    #print(len(result))
     print(result[1])
 
     overview = result[1]
@@ -95,5 +103,5 @@ if __name__ == '__main__':
     #make_audio_gtts(result[0], r"test\audio_clip_result[0].mp3")
     #make_clip(r"slide_images\slide_3.png", r"test\audio_clip_overview.mp3")
 
-    #img_paths = extract_slides('slides.pdf', output_dir='slide_images')
+    img_paths = extract_slides('slides.pdf', output_dir='slide_images')
     #print(img_paths)
