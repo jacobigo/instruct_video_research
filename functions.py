@@ -30,16 +30,23 @@ def clean_frame(text):
 
 
 
+def split_frames(text):
+    # Split on either "Click to Frame" OR "## Section" boundaries
+    pattern = r'(?=\*\*\(Click to Frame \d+.*?\)\*\*|^## Section )'
+    frames = re.split(pattern, text)
+    frames = [f.strip() for f in frames if f.strip()]
+    return frames
+
 
 #getting each frame of the slides based on the script
 def parse_script(script_path):
     with open(script_path, 'r', encoding='utf-8') as f:
         text = f.read()
 
-    frames = re.split(r'\*\*\(Click to Frame \d+.*?\)\*\*', text)
-    frames = [clean_frame(f) for f in frames]
+    frames = split_frames(text)
 
-    frames = [f.strip() for f in frames if len(f.strip()) > 5]
+    frames = [clean_frame(f) for f in frames]
+    frames = [f for f in frames if len(f.split()) > 5]
     return frames
 
 
@@ -95,13 +102,13 @@ def make_clip(slide_image_path, audio_path, output_dir):
 if __name__ == '__main__':
     script_path = 'script.md'
     result = parse_script(script_path)
-    #print(len(result))
-    print(result[1])
+    print(len(result))
+    print(result[6])
 
     overview = result[1]
 
     #make_audio_gtts(result[0], r"test\audio_clip_result[0].mp3")
     #make_clip(r"slide_images\slide_3.png", r"test\audio_clip_overview.mp3")
 
-    img_paths = extract_slides('slides.pdf', output_dir='slide_images')
+    #img_paths = extract_slides('slides.pdf', output_dir='slide_images')
     #print(img_paths)
