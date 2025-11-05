@@ -15,8 +15,8 @@ def clean_text(s):
     s = s.replace('\r\n', '\n').strip()
 
     # Remove markdown headings, separators
-    s = re.sub(r'(?m)^\s{0,3}#+\s.*$', '', s)          # headings
-    s = re.sub(r'(?m)^\s*-{3,}\s*$', '', s)             # horizontal rules
+    s = re.sub(r'(?m)^\s{0,3}#+\s.*$', '', s)
+    s = re.sub(r'(?m)^\s*-{3,}\s*$', '', s)
     s = re.sub(r'(?m)^\s*\*{3,}\s*$', '', s)
 
     # Remove bolded parentheses or bracketed directions
@@ -44,9 +44,20 @@ def clean_text(s):
 
 # === Core parser ===
 
+# Pattern to match frame markers - EXCLUDING "Continued" frames
 FRAME_MARKER_PAT = re.compile(
-    r'(?P<marker>\*\*\(Click to Frame\s*\d+[^)]*\)\*\*|\*\*\[Frame[^\]]+\]\*\*|\[Frame[^\]]+\]|\*\*\(Begin[^\)]*\)\*\*)',
-    flags=re.I
+    r'(?:^\s*\*\*\s*\((?:Click to )?Frame\s*\d+(?!.*[Cc]ontinued)[^)]*\)\s*\*\*\s*$|'
+    r'^\s*\*\*\s*\[Frame\s*\d+(?!.*[Cc]ontinued)[^\]]*\]\s*\*\*\s*$|'
+    r'^\s*\[Frame\s*\d+(?!.*[Cc]ontinued)[^\]]*\]\s*$|'
+    r'^\s*\*\*\s*\(Begin[^\)]*\)\s*\*\*\s*$|'
+    r'^\s*\*\*\s*\[(?:Move|Advance|Transition)\s+to\s+Frame\s*\d+(?!.*[Cc]ontinued)[^\]]*\]\s*\*\*\s*$)',
+    flags=re.I | re.M
+)
+
+# Pattern to match "Frame X Continued" markers (to be removed but not used as split points)
+FRAME_CONTINUED_PAT = re.compile(
+    r'^\s*\*\*\s*\[Frame\s*\d+\s+Continued\]\s*\*\*\s*$',
+    flags=re.I | re.M
 )
 
 SECTION_HEADER = re.compile(r'(?m)^\s*##\s+Section\s+\d+[:\s].*$', flags=re.I)
@@ -59,134 +70,128 @@ def split_into_sections(text):
     If no leading sections, returns one section with header None.
     """
     sections = []
-    # find indices of each section header
-    idxs = [m.start() for m in SECTION_HEADER.finditer(text)]
-    if not idxs:
-        return [(None, text)]
-    # get all matches with spans
     matches = list(SECTION_HEADER.finditer(text))
+    
+    if not matches:
+        return [(None, text)]
+    
     for i, m in enumerate(matches):
-        start = m.start()
-        header = m.group(0)
+        header = m.group(0).strip()
         body_start = m.end()
+        
         if i + 1 < len(matches):
             end = matches[i + 1].start()
         else:
             end = len(text)
+        
         body = text[body_start:end].strip()
-        sections.append((header.strip(), body))
+        sections.append((header, body))
+    
     return sections
+
+def remove_frame_continued_markers(text):
+    """
+    Remove 'Frame X Continued' markers from text since they don't denote new frames.
+    """
+    return FRAME_CONTINUED_PAT.sub('', text)
 
 def extract_frames_from_section(header, body):
     """
     Given a section body, return an ordered list of frame texts (cleaned).
-    Uses the explicit frame markers when available, else uses heuristics.
+    Uses explicit frame markers and improved heuristics.
     """
-    # Try to read declared frame count like "*(7 frames)*"
+    # First, remove "Frame X Continued" markers as they don't split frames
+    body = remove_frame_continued_markers(body)
+    
+    # Try to read declared frame count
     count_match = FRAMES_COUNT_IN_SECTION.search(body)
     declared_count = int(count_match.group(1)) if count_match else None
 
-    # Find all explicit frame marker matches and their spans
+    # Find all explicit frame marker matches (excluding continued frames)
     markers = list(FRAME_MARKER_PAT.finditer(body))
-    if markers:
-        # If markers exist, split at their start positions; include trailing content until next marker or section end.
-        chunks = []
-        for i, m in enumerate(markers):
-            start = m.start()
+    
+    if markers and len(markers) >= 2:
+        # Use frame markers to split
+        frames = []
+        
+        for i in range(len(markers)):
+            start = markers[i].end()  # Start after the marker
+            
+            # Find end point (next marker or end of body)
             if i + 1 < len(markers):
                 end = markers[i + 1].start()
             else:
                 end = len(body)
+            
             chunk = body[start:end].strip()
-            chunks.append(chunk)
-        # If declared_count exists and differs from found markers, attempt to merge/split
-        if declared_count and declared_count != len(chunks):
-            # If we found fewer chunks than declared, try splitting chunks at '---' or blank-line boundaries
-            if len(chunks) < declared_count:
-                expanded = []
-                for c in chunks:
-                    parts = [p.strip() for p in re.split(r'\n-{3,}\n|\n{2,}', c) if p.strip()]
-                    expanded.extend(parts)
-                if len(expanded) >= declared_count:
-                    chunks = expanded
-                else:
-                    # fallback: split by sentences into roughly declared_count pieces
-                    text_for_split = '\n\n'.join(chunks)
-                    chunks = smart_even_split(text_for_split, declared_count)
-            # If more chunks than declared, merge last few
-            elif len(chunks) > declared_count:
-                # merge extra into last declared_count chunk
-                keep = chunks[:declared_count-1]
-                remainder = '\n\n'.join(chunks[declared_count-1:])
-                keep.append(remainder)
-                chunks = keep
-        frames = [clean_text(strip_frame_marker(c)) for c in chunks]
-        return frames
-
-    # No explicit markers; try splitting by '---' separators
-    chunks = [p.strip() for p in re.split(r'\n-{3,}\n', body) if p.strip()]
+            
+            # Skip empty chunks
+            if chunk:
+                frames.append(chunk)
+        
+        # Clean and return
+        cleaned_frames = [clean_text(f) for f in frames if f.strip()]
+        
+        # Verify against declared count if available
+        if declared_count and len(cleaned_frames) != declared_count:
+            print(f"Warning: Section '{header}' declares {declared_count} frames but found {len(cleaned_frames)} frames")
+        
+        return cleaned_frames
+    
+    # No clear frame markers - try splitting by horizontal rules
+    hr_pattern = re.compile(r'\n\s*-{3,}\s*\n')
+    chunks = [c.strip() for c in hr_pattern.split(body) if c.strip()]
+    
+    # If we have a declared count and chunks match, use them
     if declared_count and len(chunks) == declared_count:
         return [clean_text(c) for c in chunks]
-
-    # If declared_count given but chunks don't match, split paragraphs into declared_count
-    paragraphs = [p.strip() for p in re.split(r'\n{2,}', body) if p.strip()]
-    if declared_count:
+    
+    # Try splitting by double newlines (paragraphs)
+    paragraphs = [p.strip() for p in re.split(r'\n\n+', body) if p.strip()]
+    
+    # Filter out very short paragraphs (likely artifacts)
+    paragraphs = [p for p in paragraphs if len(p) > 50]
+    
+    # If declared count exists, try to group paragraphs
+    if declared_count and declared_count > 0:
         if len(paragraphs) >= declared_count:
-            # merge paragraphs into declared_count groups evenly
-            frames = paragraph_group_split(paragraphs, declared_count)
-            return [clean_text(p) for p in frames]
+            return group_paragraphs_evenly(paragraphs, declared_count)
         else:
-            # fallback to sentence-based even split
-            return [clean_text(p) for p in smart_even_split(body, declared_count)]
-
-    # If no declared count, but we have paragraphs, treat each paragraph as a frame if it looks like frames
-    if len(paragraphs) <= 12:  # arbitrary safety cap
+            # Not enough paragraphs, return what we have
+            return [clean_text(p) for p in paragraphs]
+    
+    # No declared count - treat each substantial paragraph as a frame
+    if len(paragraphs) <= 15:  # Reasonable frame limit
         return [clean_text(p) for p in paragraphs]
-
-    # Last resort: return the whole section cleaned as 1 frame
+    
+    # Last resort: return whole section as one frame
     return [clean_text(body)]
 
-def strip_frame_marker(chunk):
-    # Remove leading explicit frame markers like **(Click to Frame 2: ...)**
-    chunk = re.sub(r'^\s*\*\*\(Click to Frame[^)]*\)\*\*', '', chunk, flags=re.I).strip()
-    chunk = re.sub(r'^\s*\*\*\[Frame[^\]]+\]\*\*', '', chunk, flags=re.I).strip()
-    chunk = re.sub(r'^\s*\[Frame[^\]]+\]', '', chunk, flags=re.I).strip()
-    return chunk
-
-def paragraph_group_split(paragraphs, groups):
-    """Group paragraphs into `groups` buckets, preserving order, balancing lengths."""
-    if groups <= 0:
+def group_paragraphs_evenly(paragraphs, target_count):
+    """
+    Group paragraphs into target_count frames, distributing evenly.
+    """
+    if target_count <= 0:
         return ['\n\n'.join(paragraphs)]
-    n = len(paragraphs)
-    # naive distribution: roughly equal counts
-    per = max(1, n // groups)
-    out = []
-    i = 0
-    for g in range(groups-1):
-        out.append('\n\n'.join(paragraphs[i:i+per]))
-        i += per
-    out.append('\n\n'.join(paragraphs[i:]))
-    return out
-
-def smart_even_split(text, n):
-    """
-    Split text into n chunks roughly even by sentence count.
-    """
-    import re
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', text) if s.strip()]
-    if n <= 1 or len(sentences) <= n:
-        # fallback: group some sentences so result length == n if possible
-        if len(sentences) <= n:
-            return [' '.join(sentences)]
-        return [' '.join(sentences)]
-    k = len(sentences) // n
-    out = []
-    i = 0
-    for j in range(n-1):
-        out.append(' '.join(sentences[i:i+k]))
-        i += k
-    out.append(' '.join(sentences[i:]))
-    return out
+    
+    if len(paragraphs) <= target_count:
+        return [clean_text(p) for p in paragraphs]
+    
+    # Calculate how many paragraphs per frame
+    per_frame = len(paragraphs) // target_count
+    remainder = len(paragraphs) % target_count
+    
+    frames = []
+    idx = 0
+    
+    for i in range(target_count):
+        # Distribute remainder paragraphs across first few frames
+        count = per_frame + (1 if i < remainder else 0)
+        frame_paras = paragraphs[idx:idx + count]
+        frames.append(clean_text('\n\n'.join(frame_paras)))
+        idx += count
+    
+    return frames
 
 # === Main entry ===
 
@@ -195,8 +200,11 @@ def parse_script_file(md_path, out_json='parsed_frames.json'):
     sections = split_into_sections(text)
 
     parsed = []
+    total_frames = 0
+    
     for header, body in sections:
         frames = extract_frames_from_section(header, body)
+        total_frames += len(frames)
         parsed.append({
             'section_header': header,
             'num_frames_detected': len(frames),
@@ -205,23 +213,22 @@ def parse_script_file(md_path, out_json='parsed_frames.json'):
 
     # Save JSON
     Path(out_json).write_text(json.dumps(parsed, indent=2, ensure_ascii=False), encoding='utf-8')
+    
+    print(f'\nTotal sections: {len(parsed)}')
+    print(f'Total frames: {total_frames}')
+    
     return parsed
 
 if __name__ == '__main__':
     import sys
     md = sys.argv[1] if len(sys.argv) > 1 else 'script.md'
     parsed = parse_script_file(md)
-    print(f'Parsed {sum(len(s["frames"]) for s in parsed)} frames across {len(parsed)} sections')
-    # optionally print a preview
+    
+    # Print preview
     for sec in parsed:
         print('---')
         print('Section:', sec['section_header'])
+        print(f'Frames: {sec["num_frames_detected"]}')
         for i, f in enumerate(sec['frames'], 1):
-            print(f'Frame {i} preview:', f[:120].replace('\n',' ') + ('...' if len(f)>120 else ''))
-
-    text = []
-    for section in parsed:
-        text.extend(section['frames'])
-
-    print(f"Parsed script from {md}")
-    print(f"Total frames detected: {len(text)}")
+            preview = f[:120].replace('\n', ' ')
+            print(f'  Frame {i}: {preview}{"..." if len(f) > 120 else ""}')

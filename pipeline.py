@@ -8,7 +8,7 @@ import os
 
 
 # please use slides path as .pdf and script as .md 
-def pipeline(script_path, slides_path, slides_output_folder, audio_output_folder, clip_output_folder):
+def pipeline(script_path, slides_path, slides_output_folder, audio_output_folder, clip_output_folder, final_video_folder):
 
     text = parsing.parse_script_file(script_path)
     flattened = []
@@ -25,7 +25,7 @@ def pipeline(script_path, slides_path, slides_output_folder, audio_output_folder
     counter = 0
     for filename in os.listdir(slides_output_folder):
 
-        if counter >= len(text):
+        if counter >= len(flattened):
             print(f"Warning: More slides ({len(os.listdir(slides_output_folder))}) than script frames ({len(text)})")
             break
 
@@ -38,6 +38,12 @@ def pipeline(script_path, slides_path, slides_output_folder, audio_output_folder
         functions.make_clip(slide_image_path, audio_output_path, clip_output_path)
         counter += 1
 
+    print(f"{counter} clips made, located in {clip_output_folder}")
+
+    functions.concat_clips(clip_output_folder, final_video_folder)
+
+    print(f"final video made, located in {final_video_folder}")
+
 
 if __name__ == '__main__':
     SCRIPT_PATH = 'script.md'
@@ -45,7 +51,8 @@ if __name__ == '__main__':
     SLIDES_OUTPUT_FOLDER = 'slide_images'
     AUDIO_OUTPUT_FOLDER = 'audio_files'
     CLIP_OUTPUT_FOLDER = 'audio_image_clips'
+    FINAL_VIDEO_OUTPUT_FOLDER = 'final_video'
     
-    pipeline(SCRIPT_PATH, SLIDES_PATH, SLIDES_OUTPUT_FOLDER, AUDIO_OUTPUT_FOLDER, CLIP_OUTPUT_FOLDER)
+    pipeline(SCRIPT_PATH, SLIDES_PATH, SLIDES_OUTPUT_FOLDER, AUDIO_OUTPUT_FOLDER, CLIP_OUTPUT_FOLDER, FINAL_VIDEO_OUTPUT_FOLDER)
 
 

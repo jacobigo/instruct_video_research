@@ -1,55 +1,9 @@
 import re
 import pymupdf
 from gtts import gTTS
-from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
+from moviepy import ImageClip, AudioFileClip, VideoFileClip, concatenate_videoclips
 import os
-
-
-#clean the meta-data
-def clean_frame(text):
-    # Remove markdown headings and horizontal rules
-    text = re.sub(r'#+.*', '', text)
-    text = re.sub(r'-{3,}', '', text)
-    
-    # Remove parenthetical or bracketed directions
-    text = re.sub(r'\*\*?\(.*?\)\*\*?', '', text)
-    text = re.sub(r'\*.*?\*', '', text)
-    text = re.sub(r'\[.*?\]', '', text)
-    
-    # Remove "meta" sentences often at the start
-    text = re.sub(r'^[\s\S]{0,200}?(?:Welcome|Let’s|Now,)', lambda m: m.group(0), text)
-    
-    # Remove common filler phrases
-    text = re.sub(r'Certainly!.*?(?=\n|$)', '', text)
-    text = re.sub(r'Here’s.*?(?=\n|$)', '', text)
-    text = re.sub(r'This comprehensive script.*?(?=\n|$)', '', text)
-
-    # Remove multiple newlines and trim
-    text = re.sub(r'\n{2,}', '\n', text)
-    return text.strip()
-
-
-
-def split_frames(text):
-    # Split on either "Click to Frame" OR "## Section" boundaries
-    pattern = r'(?=\*\*\(Click to Frame \d+.*?\)\*\*|^## Section )'
-    frames = re.split(pattern, text)
-    frames = [f.strip() for f in frames if f.strip()]
-    return frames
-
-
-#getting each frame of the slides based on the script
-def parse_script(script_path):
-    with open(script_path, 'r', encoding='utf-8') as f:
-        text = f.read()
-
-    frames = split_frames(text)
-
-    frames = [clean_frame(f) for f in frames]
-    frames = [f for f in frames if len(f.split()) > 5]
-    return frames
-
-
+import subprocess
 
 
 #extracting each image from the slides
@@ -94,6 +48,39 @@ def make_clip(slide_image_path, audio_path, output_dir):
     final_clip.write_videofile(output_dir, fps=24)
 
 
+#using ffmpeg instead of moviepy for faster performance
+def concat_clips(clip_folder, final_video_folder):
+
+    clip_list = []
+    for clip in os.listdir(clip_folder):
+        clip_path = os.path.join(clip_folder, clip)
+        clip_list.append(clip_path)
+
+    #clip_list.sort()
+    def natural_sort_key(s):
+        return [int(text) if text.isdigit() else text.lower() for text in re.split (r'(\d+)', s)]
+    
+    clip_list.sort(key=natural_sort_key)
+
+    concat_file = os.path.join(clip_folder, 'concat_list.txt')
+    with open(concat_file, 'w') as f:
+        for clip in clip_list:
+            #absolute path for ffmpeg
+            abs_path = os.path.abspath(clip).replace('\\', '/')
+            f.write(f"file '{abs_path}'\n")
+
+    #os.makedirs(final_video_folder, exist_ok=True)
+    output_path = f"{final_video_folder}\\final_video.mp4"
+
+    subprocess.run([
+        'ffmpeg', '-f', 'concat', '-safe', '0',
+        '-i', concat_file,
+        '-c', 'copy',  # Copy streams without re-encoding
+        output_path
+    ])    
+
+    os.remove(concat_file)
+
 
 
 
@@ -101,14 +88,11 @@ def make_clip(slide_image_path, audio_path, output_dir):
 #testing
 if __name__ == '__main__':
     script_path = 'script.md'
-    result = parse_script(script_path)
-    print(len(result))
-    print(result[6])
-
-    overview = result[1]
 
     #make_audio_gtts(result[0], r"test\audio_clip_result[0].mp3")
     #make_clip(r"slide_images\slide_3.png", r"test\audio_clip_overview.mp3")
 
     #img_paths = extract_slides('slides.pdf', output_dir='slide_images')
     #print(img_paths)
+
+    concat_clips('audio_image_clips', 'final_video')
