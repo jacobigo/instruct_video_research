@@ -15,6 +15,7 @@ it produces:
 ---
 ## Technologies Used
 - gTTS (moving toward OpenAI TTS in the future)
+- pymupdf (splitting slide frames)
 - MoviePy (for combining image and audio)
 - FFmpeg (for clip concatenation)
 - Regex (for complex parsing)
