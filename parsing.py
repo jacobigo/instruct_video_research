@@ -40,6 +40,10 @@ def clean_text(s):
 
     # Clean up whitespace
     s = re.sub(r'\n{2,}', '\n\n', s).strip()
+
+    # Replace remaining asterisks with underscores
+    s = s.replace('*', '_')
+
     return s
 
 # === Core parser ===

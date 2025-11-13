@@ -4,10 +4,12 @@ from gtts import gTTS
 from moviepy import ImageClip, AudioFileClip, VideoFileClip, concatenate_videoclips
 import os
 import subprocess
+import parsing
+from openai import OpenAI
 
 
 #extracting each image from the slides
-def extract_slides(slide_path, output_dir="slide_images", skip_first=True):
+def extract_slides(slide_path, output_dir="slide_images", skip_first=False):
     doc = pymupdf.open(slide_path)
     paths = []
 
@@ -34,6 +36,27 @@ def extract_slides(slide_path, output_dir="slide_images", skip_first=True):
 def make_audio_gtts(text, output_path):
     tts = gTTS(text)
     tts.save(output_path)
+
+
+
+def make_audio_openai(text, output_path, voice="alloy", model="tts-1"):
+    """
+    Generate audio using OpenAI TTS API
+    
+    Args:
+        text (str): Text to convert to speech
+        output_path (str): Path where audio file will be saved
+        voice (str): Voice to use - options: alloy, echo, fable, onyx, nova, shimmer
+        model (str): Model to use - options: tts-1 (faster), tts-1-hd (higher quality)
+    """
+    client = OpenAI()  # Make sure OPENAI_API_KEY is set in environment variables
+    
+    with client.audio.speech.with_streaming_response.create(
+        model=model,
+        voice=voice,
+        input=text,
+    ) as response:
+        response.stream_to_file(output_path)
 
 
 
