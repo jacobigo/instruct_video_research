@@ -9,7 +9,7 @@ from openai import OpenAI
 
 
 #extracting each image from the slides
-def extract_slides(slide_path, output_dir="slide_images", skip_first=False):
+def extract_slides(slide_path, output_dir="slide_images", skip_first=True):
     doc = pymupdf.open(slide_path)
     paths = []
 

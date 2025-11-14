@@ -108,13 +108,13 @@ def pipeline(script_path, slides_path, slides_output_folder, audio_output_folder
 
 
 if __name__ == '__main__':
-    SCRIPT_PATH = 'content_ch1s/intro_to_ai/script.md'
-    SLIDES_PATH = 'content_ch1s/intro_to_ai/slides.pdf'
+    SCRIPT_PATH = 'content_ch1s/topics_in_rl/script.md'
+    SLIDES_PATH = 'content_ch1s/topics_in_rl/slides.pdf'
     SLIDES_OUTPUT_FOLDER = 'slide_images'
     AUDIO_OUTPUT_FOLDER = 'audio_files'
     CLIP_OUTPUT_FOLDER = 'audio_image_clips'
     FINAL_VIDEO_OUTPUT_FOLDER = 'final_video'
-    FINAL_VIDEO_NAME = 'AI'
+    FINAL_VIDEO_NAME = 'RL'
     
     pipeline(SCRIPT_PATH, SLIDES_PATH, SLIDES_OUTPUT_FOLDER, AUDIO_OUTPUT_FOLDER, CLIP_OUTPUT_FOLDER, FINAL_VIDEO_OUTPUT_FOLDER, FINAL_VIDEO_NAME)
 

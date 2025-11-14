@@ -1,0 +1,16 @@
+{
+  "pipeline_start": "2025-11-13T20:12:42.132874",
+  "script_path": "content_ch1s/data_processing_at_scale/script.md",
+  "slides_path": "content_ch1s/data_processing_at_scale/slides.pdf",
+  "steps": {
+    "parse_script": 0.020354747772216797,
+    "extract_slides": 1.884678840637207,
+    "generate_clips": 1201.6923336982727,
+    "concat_clips": 4.3631439208984375
+  },
+  "pipeline_end": "2025-11-13T20:32:50.097346",
+  "total_duration_seconds": 1207.96,
+  "total_duration_formatted": "20m 7s",
+  "frames_processed": 49,
+  "slides_processed": 49
+}
