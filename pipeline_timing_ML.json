@@ -1,0 +1,16 @@
+{
+  "pipeline_start": "2025-11-13T17:34:47.594346",
+  "script_path": "content_ch1s/foundations_of_ml/script.md",
+  "slides_path": "content_ch1s/foundations_of_ml/slides.pdf",
+  "steps": {
+    "parse_script": 0.013335704803466797,
+    "extract_slides": 1.1831846237182617,
+    "generate_clips": 1090.5833837985992,
+    "concat_clips": 6.016491651535034
+  },
+  "pipeline_end": "2025-11-13T17:53:05.391777",
+  "total_duration_seconds": 1097.8,
+  "total_duration_formatted": "18m 17s",
+  "frames_processed": 45,
+  "slides_processed": 45
+}

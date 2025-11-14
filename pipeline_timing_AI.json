@@ -1,0 +1,16 @@
+{
+  "pipeline_start": "2025-11-13T18:57:11.280624",
+  "script_path": "content_ch1s/intro_to_ai/script.md",
+  "slides_path": "content_ch1s/intro_to_ai/slides.pdf",
+  "steps": {
+    "parse_script": 0.014990091323852539,
+    "extract_slides": 1.4181220531463623,
+    "generate_clips": 1095.4930226802826,
+    "concat_clips": 5.335919618606567
+  },
+  "pipeline_end": "2025-11-13T19:15:33.545116",
+  "total_duration_seconds": 1102.26,
+  "total_duration_formatted": "18m 22s",
+  "frames_processed": 45,
+  "slides_processed": 45
+}

@@ -42,7 +42,7 @@ def clean_text(s):
     s = re.sub(r'\n{2,}', '\n\n', s).strip()
 
     # Replace remaining asterisks with underscores
-    s = s.replace('*', '_')
+    s = s.replace('*', '')
 
     return s
 
@@ -225,7 +225,7 @@ def parse_script_file(md_path, out_json='parsed_frames.json'):
 
 if __name__ == '__main__':
     import sys
-    md = sys.argv[1] if len(sys.argv) > 1 else 'script.md'
+    md = sys.argv[1] if len(sys.argv) > 1 else 'content_ch1s/data_processing_at_scale/script.md'
     parsed = parse_script_file(md)
     
     # Print preview

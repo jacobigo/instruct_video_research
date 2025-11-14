@@ -38,7 +38,7 @@ def make_audio_gtts(text, output_path):
     tts.save(output_path)
 
 
-
+#experimental, for future use
 def make_audio_openai(text, output_path, voice="alloy", model="tts-1"):
     """
     Generate audio using OpenAI TTS API
@@ -72,7 +72,7 @@ def make_clip(slide_image_path, audio_path, output_dir):
 
 
 #using ffmpeg instead of moviepy for faster performance
-def concat_clips(clip_folder, final_video_folder):
+def concat_clips(clip_folder, final_video_folder, final_video_name):
 
     clip_list = []
     for clip in os.listdir(clip_folder):
@@ -93,7 +93,7 @@ def concat_clips(clip_folder, final_video_folder):
             f.write(f"file '{abs_path}'\n")
 
     #os.makedirs(final_video_folder, exist_ok=True)
-    output_path = f"{final_video_folder}\\final_video.mp4"
+    output_path = f"{final_video_folder}\\final_video_{final_video_name}.mp4"
 
     subprocess.run([
         'ffmpeg', '-f', 'concat', '-safe', '0',
@@ -118,4 +118,4 @@ if __name__ == '__main__':
     #img_paths = extract_slides('slides.pdf', output_dir='slide_images')
     #print(img_paths)
 
-    concat_clips('audio_image_clips', 'final_video')
+    #concat_clips('audio_image_clips', 'final_video')

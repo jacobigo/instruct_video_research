@@ -1,0 +1,16 @@
+{
+  "pipeline_start": "2025-11-13T18:04:30.960918",
+  "script_path": "content_ch1s/original_data_mining/script.md",
+  "slides_path": "content_ch1s/original_data_mining/slides.pdf",
+  "steps": {
+    "parse_script": 0.02349996566772461,
+    "extract_slides": 1.9880483150482178,
+    "generate_clips": 1899.071162700653,
+    "concat_clips": 12.56879711151123
+  },
+  "pipeline_end": "2025-11-13T18:36:24.613909",
+  "total_duration_seconds": 1913.65,
+  "total_duration_formatted": "31m 53s",
+  "frames_processed": 74,
+  "slides_processed": 74
+}
